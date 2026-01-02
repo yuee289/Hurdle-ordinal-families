@@ -1,0 +1,122 @@
+
+
+```{R}
+library(tidyverse)
+library(brms)
+library(cmdstanr)
+
+source("brmHelpers.R")
+source("HurdleCratio.R")
+
+# Load data
+# use file from Vuorre and Burkner paper on ordinal models
+marriage <- read.csv("https://osf.io/download/n6dzh/")
+
+# set "divorced" to be hurdle
+marriage$yearsh <- ifelse(marriage$divorced == FALSE, 0, marriage$years)
+
+# prior and model fit from paper
+# change to logit to compare outputs
+prior_ma <- prior(normal(0, 1.5), class = "b") +
+    prior(normal(0, 1.5), class = "Intercept")
+
+fit_ma1 <- brm(
+    years ~ 1 + age + together,
+    data = subset(marriage, divorced), 
+    family = cratio("logit"),
+    prior = prior_ma,
+    cores = 4,
+    chains = 4,
+    threads = threading(4),
+    backend = "cmdstanr",
+    iter = 3500,
+    warmup = 1000
+)
+
+# new priors for hurdle_cratio() family
+prior_ma2 <- prior(normal(0, 1.5), class = b) +
+    prior(normal(0, 1.5), class = Intercept) +
+    prior(normal(0, 1.5), class = b, dpar = "hu") +
+    prior(normal(0, 1.5), class = Intercept, dpar = "hu") 
+    
+fit_ma2 <- brm(
+    bf(
+        yearsh ~ 1 + age + together,
+        hu ~ 1 + age
+    ),
+    data = marriage,
+    family = hurdle_cratio,
+    stan_funs = stan_funs,
+    prior = prior_ma2,
+    cores = 4,
+    chains = 4,
+    threads = threading(4),
+    backend = "cmdstanr",
+    iter = 3500,
+    warmup = 1000
+)
+
+```
+
+Compare outputs
+
+```{R}
+
+out1 <- fixef(fit_ma1) %>%
+    data.frame()
+out1$family <- "cratio"
+out1$xtick <- row.names(out1)
+out2 <- fixef(fit_ma2) %>%
+    data.frame()
+out2$family <- "hurdle_cratio"
+out2$xtick <- row.names(out2)
+out_both <- rbind(out1, out2)
+
+p <- out_both %>%
+    ggplot() +
+    geom_pointrange(mapping = aes(x = xtick, 
+                                    y = Estimate,
+                                    ymin = Q2.5,
+                                    ymax = Q97.5,
+                                    colour = family,
+                                    group = family),
+                    alpha = 0.5) +
+    labs(x = "Estimates", 
+        y = "Coef",
+        title = "Comparing coefficients between cratio and hurdle_cratio models") +
+    scale_color_manual(values = c("orange", "blue")) +
+    coord_flip() +
+    theme(panel.background = element_rect(fill = "white"),
+            panel.grid = element_line(colour = "grey85",
+                                    linetype = 2))
+
+p
+
+pp_check(fit_ma2, type = "bars", ndraws = 50)
+conditional_effects(fit_ma2, categorical = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
