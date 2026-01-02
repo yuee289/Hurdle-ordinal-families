@@ -68,8 +68,8 @@ log_lik_hurdle_sratio <- function(i, prep) {
         out <- log1m_exp(q[, 2L]) + q[, 1L] +
             dbinom(0, size = 1, prob = hu, log = TRUE)
     } else if (y == nthres + 1L) {
-        out <- rowSums(q)
-        +dbinom(0, size = 1, prob = hu, log = TRUE)
+        out <- rowSums(q) + 
+            dbinom(0, size = 1, prob = hu, log = TRUE)
     } else if (y == 0) {
         out <- dbinom(1, size = 1, prob = hu, log = TRUE)
     } else {

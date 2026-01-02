@@ -1,3 +1,5 @@
+
+
 hurdle_cratio <- custom_family(
     "hurdle_cratio",
     dpars       = c("mu", "hu", "disc"),
@@ -54,7 +56,7 @@ log_lik_hurdle_cratio <- function(i, prep) {
         function(k) log_cdf(eta[, k], prep$family$link)
     )
     if (y == 0) {
-        out <- out <- dbinom(1, size = 1, prob = hu, log = TRUE)
+        out <- dbinom(1, size = 1, prob = hu, log = TRUE)
     } else if (y == 1L) {
         out <- log1m_exp(q[, 1L]) +
             dbinom(0, size = 1, prob = hu, log = TRUE)
